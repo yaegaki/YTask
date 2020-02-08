@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Async
@@ -12,7 +11,7 @@ namespace Async
         public YTask Task => new YTask(completionSource.Task);
 
         private readonly TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
-        private CancellationToken cancellationToken;
+        private CancellationTokenInjector cancellationTokenInjector;
 
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
@@ -34,20 +33,25 @@ namespace Async
         {
             if (awaiter is CancellationTokenInjector cti)
             {
-                this.cancellationToken = cti.CancellationToken;
+                this.cancellationTokenInjector = cti;
                 stateMachine.MoveNext();
                 return;
             }
 
-            if (this.cancellationToken.CanBeCanceled)
+            if (this.cancellationTokenInjector.CancellationToken.CanBeCanceled)
             {
                 var moveNext = new Action(stateMachine.MoveNext);
                 awaiter.OnCompleted(() =>
                 {
-                    if (this.cancellationToken.IsCancellationRequested)
+                    var ct = this.cancellationTokenInjector.CancellationToken;
+                    if (ct.IsCancellationRequested)
                     {
-                        this.completionSource.SetException(new OperationCanceledException(this.cancellationToken));
+                        this.completionSource.SetException(new OperationCanceledException(ct));
                         return;
+                    }
+                    if (this.cancellationTokenInjector.RestoreInjection)
+                    {
+                        _ = YTask.InjectToStatic(ct);
                     }
                     moveNext();
                 });
@@ -64,20 +68,25 @@ namespace Async
         {
             if (awaiter is CancellationTokenInjector cti)
             {
-                this.cancellationToken = cti.CancellationToken;
+                this.cancellationTokenInjector = cti;
                 stateMachine.MoveNext();
                 return;
             }
 
-            if (this.cancellationToken.CanBeCanceled)
+            if (this.cancellationTokenInjector.CancellationToken.CanBeCanceled)
             {
                 var moveNext = new Action(stateMachine.MoveNext);
                 awaiter.UnsafeOnCompleted(() =>
                 {
-                    if (this.cancellationToken.IsCancellationRequested)
+                    var ct = this.cancellationTokenInjector.CancellationToken;
+                    if (ct.IsCancellationRequested)
                     {
-                        this.completionSource.SetException(new OperationCanceledException(this.cancellationToken));
+                        this.completionSource.SetException(new OperationCanceledException(ct));
                         return;
+                    }
+                    if (this.cancellationTokenInjector.RestoreInjection)
+                    {
+                        _ = YTask.InjectToStatic(ct);
                     }
                     moveNext();
                 });
@@ -96,7 +105,7 @@ namespace Async
         public YTask<T> Task => new YTask<T>(completionSource.Task);
 
         private readonly TaskCompletionSource<T> completionSource = new TaskCompletionSource<T>();
-        private CancellationToken cancellationToken;
+        private CancellationTokenInjector cancellationTokenInjector;
 
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
@@ -118,17 +127,26 @@ namespace Async
         {
             if (awaiter is CancellationTokenInjector cti)
             {
-                this.cancellationToken = cti.CancellationToken;
+                this.cancellationTokenInjector = cti;
                 stateMachine.MoveNext();
                 return;
             }
 
-            if (this.cancellationToken.CanBeCanceled)
+            if (this.cancellationTokenInjector.CancellationToken.CanBeCanceled)
             {
                 var moveNext = new Action(stateMachine.MoveNext);
                 awaiter.OnCompleted(() =>
                 {
-                    this.cancellationToken.ThrowIfCancellationRequested();
+                    var ct = this.cancellationTokenInjector.CancellationToken;
+                    if (ct.IsCancellationRequested)
+                    {
+                        this.completionSource.SetException(new OperationCanceledException(ct));
+                        return;
+                    }
+                    if (this.cancellationTokenInjector.RestoreInjection)
+                    {
+                        _ = YTask.InjectToStatic(ct);
+                    }
                     moveNext();
                 });
             }
@@ -144,17 +162,26 @@ namespace Async
         {
             if (awaiter is CancellationTokenInjector cti)
             {
-                this.cancellationToken = cti.CancellationToken;
+                this.cancellationTokenInjector = cti;
                 stateMachine.MoveNext();
                 return;
             }
 
-            if (this.cancellationToken.CanBeCanceled)
+            if (this.cancellationTokenInjector.CancellationToken.CanBeCanceled)
             {
                 var moveNext = new Action(stateMachine.MoveNext);
                 awaiter.UnsafeOnCompleted(() =>
                 {
-                    this.cancellationToken.ThrowIfCancellationRequested();
+                    var ct = this.cancellationTokenInjector.CancellationToken;
+                    if (ct.IsCancellationRequested)
+                    {
+                        this.completionSource.SetException(new OperationCanceledException(ct));
+                        return;
+                    }
+                    if (this.cancellationTokenInjector.RestoreInjection)
+                    {
+                        _ = YTask.InjectToStatic(ct);
+                    }
                     moveNext();
                 });
             }

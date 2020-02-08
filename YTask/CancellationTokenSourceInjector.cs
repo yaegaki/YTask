@@ -8,9 +8,10 @@ namespace Async
     {
         public bool IsCompleted => false;
         public readonly CancellationToken CancellationToken;
+        public readonly bool RestoreInjection;
 
-        public CancellationTokenInjector(CancellationToken cancellationToken)
-            => this.CancellationToken = cancellationToken;
+        public CancellationTokenInjector(CancellationToken cancellationToken, bool restoreInjection)
+            => (this.CancellationToken, this.RestoreInjection) = (cancellationToken, restoreInjection);
 
         public CancellationTokenInjector GetAwaiter()
             => this;

@@ -8,7 +8,18 @@ namespace Async
     public struct YTask
     {
         public static CancellationTokenInjector Inject(CancellationToken cancellationToken)
-            => new CancellationTokenInjector(cancellationToken);
+            => new CancellationTokenInjector(cancellationToken, false);
+
+        private static CancellationTokenInjector staticCancellationTokenInjector;
+
+        public static CancellationTokenInjector InjectToStatic(CancellationToken cancellationToken)
+        {
+            staticCancellationTokenInjector = new CancellationTokenInjector(cancellationToken, true);
+            return staticCancellationTokenInjector;
+        }
+
+        public static CancellationTokenInjector InjectFromStatic()
+            => staticCancellationTokenInjector;
 
         private readonly Task task;
 
